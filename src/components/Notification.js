@@ -41,21 +41,24 @@ export class Notification extends Component {
       id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
       title: PropTypes.string,
       message: PropTypes.string,
-      image: PropTypes.string,
+      image: PropTypes.node,
+      imageClassName: PropTypes.string,
+      imageInnerHTML: PropTypes.string,
       status: PropTypes.string.isRequired,
       position: PropTypes.oneOf(mapObjectValues(POSITIONS)),
       dismissAfter: PropTypes.number.isRequired,
       dismissible: PropTypes.bool.isRequired,
       onAdd: PropTypes.func,
       onRemove: PropTypes.func,
-      closeButton: PropTypes.bool.isRequired,
+      closeButton: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]).isRequired,
       buttons: PropTypes.arrayOf(
         PropTypes.shape({
           name: PropTypes.string.isRequired,
           onClick: PropTypes.func
         })
       ).isRequired,
-      allowHTML: PropTypes.bool.isRequired
+      allowHTML: PropTypes.bool.isRequired,
+      attributes: PropTypes.object
     }).isRequired,
     removeNotification: PropTypes.func.isRequired
   };
@@ -169,8 +172,21 @@ export class Notification extends Component {
   };
 
   /**
+   * Render close button
+   * @returns {*}
+   */
+  _renderCloseButton() {
+    const { className } = this.props;
+    return (
+      <div className={className.closeButtonContainer}>
+        <span className={className.closeButton} onClick={this._remove} />
+      </div>
+    );
+  }
+
+  /**
    * Render
-   * @returns {XML}
+   * @returns {*}
    */
   render() {
     const {
@@ -183,17 +199,31 @@ export class Notification extends Component {
         closeButton,
         buttons,
         image,
-        allowHTML
+        imageClassName,
+        imageInnerHTML,
+        allowHTML,
+        position,
+        attributes
       }
     } = this.props;
     const {timer} = this.state;
     const isDismissible = (dismissible && buttons.length === 0);
+    const isRightSideCloseButton = [
+      POSITIONS.top,
+      POSITIONS.topLeft,
+      POSITIONS.bottom,
+      POSITIONS.bottomLeft
+    ].indexOf(position) !== -1;
     const notificationClass = [
       className.main,
       className.status(status),
       className.buttons(buttons.length),
       isDismissible && !closeButton ? className.dismissible : null
     ].join(' ');
+    const imageClass = [
+      className.image,
+      imageClassName
+    ].join(' ').trim();
 
     if (timer) {
       this._resumeTimer();
@@ -205,12 +235,19 @@ export class Notification extends Component {
         onClick={isDismissible && !closeButton ? this._remove : null}
         onMouseEnter={timer ? this._pauseTimer : null}
         onMouseLeave={timer ? this._resumeTimer : null}
+        {...attributes || {}}
       >
         <div className={notificationClass}>
-          {image
+          {image || imageInnerHTML || imageClassName
             ? (
               <div className={className.imageContainer}>
-                <span className={className.image} style={{backgroundImage: `url(${image})`}}/>
+                <span
+                  className={imageClass}
+                  style={{ ...typeof image === 'string' ? { backgroundImage: `url(${image})` } : {} }}
+                  {...imageInnerHTML ? { dangerouslySetInnerHTML: this._setHTML(imageInnerHTML) } : {}}
+                >
+                  {typeof image !== 'string' ? image : null}
+                </span>
               </div>
             ) : (
               <span className={className.icon}/>
@@ -234,14 +271,8 @@ export class Notification extends Component {
               null
             }
           </div>
-          {isDismissible && closeButton
-            ? (
-              <div className={className.closeButtonContainer}>
-                <span className={className.closeButton} onClick={this._remove}/>
-              </div>
-            ) :
-            null
-          }
+          {((isDismissible && closeButton) || closeButton === 'force') && !isRightSideCloseButton ?
+            this._renderCloseButton() : null}
           {buttons.length
             ? (
               <div className={className.buttons()} onClick={this._remove}>
@@ -251,6 +282,8 @@ export class Notification extends Component {
             :
             null
           }
+          {((isDismissible && closeButton) || closeButton === 'force') && isRightSideCloseButton ?
+            this._renderCloseButton() : null}
         </div>
       </div>
     );
