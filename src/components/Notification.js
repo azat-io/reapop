@@ -58,7 +58,9 @@ export class Notification extends Component {
         })
       ).isRequired,
       allowHTML: PropTypes.bool.isRequired,
-      attributes: PropTypes.object
+      attributes: PropTypes.object,
+      textAttributes: PropTypes.object,
+      closeButtonAttributes: PropTypes.object
     }).isRequired,
     removeNotification: PropTypes.func.isRequired
   };
@@ -176,10 +178,10 @@ export class Notification extends Component {
    * @returns {*}
    */
   _renderCloseButton() {
-    const { className } = this.props;
+    const {className, notification: {closeButtonAttributes = {}}} = this.props;
     return (
       <div className={className.closeButtonContainer}>
-        <span className={className.closeButton} onClick={this._remove} />
+        <span className={className.closeButton} onClick={this._remove} {...closeButtonAttributes} />
       </div>
     );
   }
@@ -203,7 +205,8 @@ export class Notification extends Component {
         imageInnerHTML,
         allowHTML,
         position,
-        attributes
+        attributes = {},
+        textAttributes = {}
       }
     } = this.props;
     const {timer} = this.state;
@@ -235,7 +238,7 @@ export class Notification extends Component {
         onClick={isDismissible && !closeButton ? this._remove : null}
         onMouseEnter={timer ? this._pauseTimer : null}
         onMouseLeave={timer ? this._resumeTimer : null}
-        {...attributes || {}}
+        {...attributes}
       >
         <div className={notificationClass}>
           {image || imageInnerHTML || imageClassName
@@ -253,7 +256,7 @@ export class Notification extends Component {
               <span className={className.icon}/>
             )
           }
-          <div className={className.meta}>
+          <div className={className.meta} {...textAttributes}>
             {title
               ?
               allowHTML
